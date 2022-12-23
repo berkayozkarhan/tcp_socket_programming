@@ -2,8 +2,12 @@
 #define SERVER_H
 
 #include <QObject>
+#include <QDebug>
 #include <QTcpServer>
-#include "clienthandler.h"
+#include <QTcpSocket>
+#include <QThreadPool>
+#include <QThread>
+#include "client.h"
 
 #define LOG qDebug()
 
@@ -22,40 +26,22 @@ namespace Commands {
 #define CMD_LOGIN 2
 #define CMD_TRANSFER_MONEY 3
 
-class Server : public QObject
+class Server : public QTcpServer
 {
     Q_OBJECT
-
-private:
-    QString server_type = "";
-    int port = 0;
-    QTcpServer *server;
-    void init_server();
-
 public:
     explicit Server(QObject *parent = nullptr);
-
-    //getter
-    QString get_server_type() { return this->server_type; }
-    int     getPort() const { return port; }
-
-    //setter
-    void set_server_config(QString config)
-    {    if(config.isEmpty() || config.isNull())
-        {
-            LOG << "Invalid server type";
-            return;
-        }
-
-        this->server_type = config;
-    }
-    void setPort(int port) { this->port = port; }
-    void start_server(); // Threaded
-
 public slots:
-    void newConnection();
+    void start(quint16 port);
+    void quit();
 signals:
 
+
+    // QTcpServer interface
+protected:
+    virtual void incomingConnection(qintptr handle) Q_DECL_OVERRIDE; // override.
+private:
+    QThreadPool pool;
 };
 
 #endif // SERVER_H

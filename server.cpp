@@ -1,45 +1,31 @@
 #include "server.h"
-#include <QTcpSocket>
-Server::Server(QObject *parent)
-    : QObject{parent}
-{
 
+Server::Server(QObject *parent) : QTcpServer{parent}
+{
+    pool.setMaxThreadCount(20);
 }
 
-void Server::init_server()
+void Server::start(quint16 port)
 {
-    if(server_type == "tcp")
-        server = new QTcpServer(this);
-
-    connect(server, SIGNAL(newConnection()),
-                this, SLOT(newConnection()));
-
-
-}
-
-void Server::start_server()
-{
-    init_server();
-
-    if(!server->listen(QHostAddress::Any, port))
-    {
-        qDebug() << "Server could not start";
-    }
-    else
-    {
-        qDebug() << "Server started!";
+    qInfo() << this << " start " << QThread::currentThread();
+    if(this->listen(QHostAddress::Any, port)) {
+        qInfo() << "Server started on " << port;
+    }else {
+        qCritical() << this->errorString();
     }
 }
 
-void Server::newConnection()
+void Server::quit()
 {
-    LOG << "New connection ! ";
-    QTcpSocket *socket = server->nextPendingConnection();
-    QString newAddress;
-    if(socket->waitForConnected()) {
-        LOG << "Connecting...";
-        newAddress = socket->peerAddress().toString().split(':')[3];
-    }
+    this->close();
+    qInfo() << "Server Stopped.";
 }
 
+void Server::incomingConnection(qintptr handle)
+{
+    qInfo() << "Incoming connection " << handle << " on " << QThread::currentThread();
+    Client *client = new Client(handle, nullptr); //it's going to run on another thread so parent is null ptr.
+    client->setAutoDelete(true);
+    pool.start(client);
 
+}
