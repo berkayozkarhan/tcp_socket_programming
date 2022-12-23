@@ -1,6 +1,4 @@
 #include <QCoreApplication>
-#include <QHttpServer>
-#include <QtConcurrent>
 #include <QDebug>
 #include "server.h"
 #include "globals.h"
@@ -26,16 +24,7 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    QHttpServer httpServer;
-
-    Server *s = new Server();
-    s->set_server_config(G::Server::config);
-    s->setPort(G::Server::port);
-    qDebug() << "config : " << s->get_server_type();
-    qDebug() << "port : " << s->getPort();
-    s->start_server();
-
-
-
+    Server server;
+    server.start(G::Server::port);
     return a.exec();
 }
