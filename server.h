@@ -8,19 +8,10 @@
 #include <QThreadPool>
 #include <QThread>
 #include "client.h"
+#include "database.h"
+#include "globals.h"
 
 #define LOG qDebug()
-
-/*
-
-namespace Commands {
-    const static int Register = 1;
-    const static int Login = 2;
-    const static int TransferMoney = 3;
-}
-
-*/
-
 
 #define CMD_REGISTER 1
 #define CMD_LOGIN 2
@@ -42,6 +33,7 @@ protected:
     virtual void incomingConnection(qintptr handle) Q_DECL_OVERRIDE; // override.
 private:
     QThreadPool pool;
+    Database    *db;
 };
 
 #endif // SERVER_H

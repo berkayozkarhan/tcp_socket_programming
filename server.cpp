@@ -3,6 +3,8 @@
 Server::Server(QObject *parent) : QTcpServer{parent}
 {
     pool.setMaxThreadCount(20);
+    db = new Database(G::Db::filePath);
+    db->open();
 }
 
 void Server::start(quint16 port)
@@ -24,7 +26,7 @@ void Server::quit()
 void Server::incomingConnection(qintptr handle)
 {
     qInfo() << "Incoming connection " << handle << " on " << QThread::currentThread();
-    Client *client = new Client(handle, nullptr); //it's going to run on another thread so parent is null ptr.
+    Client *client = new Client(handle, db, nullptr); //it's going to run on another thread so parent is null ptr.
     client->setAutoDelete(true);
     pool.start(client);
 
