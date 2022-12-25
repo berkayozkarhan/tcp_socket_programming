@@ -32,6 +32,18 @@ QJsonObject User::getJson()
     return json;
 }
 
+QString User::getUserInfo()
+{
+    QString userInfo;
+    userInfo = "Name : " + this->name + "\n" +
+                "Surname : " + this->surname + "\n" +
+                 "Account No : " + this->accountNo + "\n" +
+                  "Balance : " + QString::number(this->balance) + "\n" +
+                    "Bank : " + this->bankName + "\n" +
+                      "Token : " + this->token + "\n";
+    return userInfo;
+}
+
 
 
 

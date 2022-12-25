@@ -12,6 +12,7 @@ public:
     // getters
     bool        isAvailable;
     QJsonObject getJson();
+    QString     getUserInfo();
     QString     getName()       const { return name; }
     QString     getToken()      const { return token; }
     QString     getSurname()    const { return surname; }
