@@ -19,6 +19,7 @@ namespace Result {
     const static int InsufficientBalance = 9;
     const static int InvalidAccountNo = 10;
     const static int TransferSuccessful = 11;
+    const static int DepositSuccessful = 12;
 }
 
 namespace Db {
@@ -35,6 +36,10 @@ namespace Db {
         const int PushFailed = 202;
     }
 
+}
+
+namespace App {
+    const static int TimeoutMs = 10000 * 10; //
 }
 
 
