@@ -12,6 +12,7 @@ const static char *Banner = "Welcome. Please specify operation described below. 
 Client::Client(qintptr handle, Database *db, QObject *parent)
     : QObject{parent}, QRunnable{}
 {
+    this->disconnectReason = "timeout";
     this->handle = handle;
     this->m_Db = db;
     randomGenerator = new QRandomGenerator(time(NULL));
@@ -32,31 +33,25 @@ void Client::run()
     }
 
     QByteArray res = Banner;
-    while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(10000 * 6)) { // 60 seconds
+    while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(G::App::TimeoutMs)) { // 60 seconds
         QString rcvString = "";
         while(!rcvString.endsWith("\r\n")) {
             rcvString += QString(socket->read(1));
         }
         qDebug() << "client : " << rcvString;
         res = handleData(rcvString);
-        /*
-        int opCode = socket->read(3)[0];
-        qDebug() << "operation : " << opCode - '0';
-        if(opCode -'0' < 0) {
-            qDebug() << "wrong operation.";
+        if (!QString::compare("UNKNOWN", res)) {
+            this->disconnectReason = "UNKNOWN_COMMAND";
             break;
         }
-        socket->flush();
-        */
-
-        //QByteArray rcvData = socket->readAll();
-        //TO:DO : emit dataReceived(rcvData);
-        //qInfo() << "Data : " << rcvData;
-        //res = "server_response";
     }
+    closeConnection();
+    exit(0);
+}
 
-    res = "timeout";
-    socket->write(res);
+void Client::closeConnection()
+{
+    socket->write(this->disconnectReason);
     socket->waitForBytesWritten();
     socket->close();
     socket->deleteLater();
@@ -76,6 +71,19 @@ QString Client::generateAccountNumber()
 
 QString Client::generateToken()
 {
+    const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+    const int randomStringLength = 12; // assuming you want random strings of 12 characters
+
+    QString randomString;
+    for(int i=0; i<randomStringLength; ++i)
+    {
+        int index = randomGenerator->global()->generate() % possibleCharacters.length();
+        QChar nextChar = possibleCharacters.at(index);
+        randomString.append(nextChar);
+    }
+    return randomString;
+
+
     int token = randomGenerator->bounded(10000, 100000);
     return QString::number(token);
 }
@@ -89,25 +97,25 @@ QByteArray Client::handleData(QString data)
         QStringList params = data.split(' ');
         int saveResult = saveUser(params);
         switch (saveResult) {
-            case G::Result::SaveUserSuccessful:
-                res = "REGISTRATION_SUCCESSFUL";
-                break;
-            case G::Result::UserExists:
-                res = "USER_ALREADY_EXISTS";
-                break;
-            case G::Result::WrongParameters:
-                res = "WRONG_PARAMETERS";
-                break;
-            default:
-                res = "UNKNOWN";
-                break;
+        case G::Result::SaveUserSuccessful:
+            res = "REGISTRATION_SUCCESSFUL";
+            break;
+        case G::Result::UserExists:
+            res = "USER_ALREADY_EXISTS";
+            break;
+        case G::Result::WrongParameters:
+            res = "WRONG_PARAMETERS";
+            break;
+        default:
+            res = "UNKNOWN";
+            break;
         }
     }else if(!QString::compare(operation, "login")) {
         QStringList params = data.split(' ');
         int loginResult = loginUser(params);
         switch (loginResult) {
         case G::Result::LoginSuccessful:
-            res = "TOKEN=" + Token;
+            res = "LOGIN_SUCCESSFUL.TOKEN=" + Token;
             break;
         case G::Result::WrongParameters:
             res = "WRONG_PARAMETERS";
@@ -124,6 +132,49 @@ QByteArray Client::handleData(QString data)
         QStringList params = data.split(' ');
         //transfer  berkay  new_token_123123 123456 10
         int transferResult = transferMoney(params);
+        switch (transferResult) {
+        case G::Result::WrongParameters:
+            res = "WRONG_PARAMETERS";
+            break;
+        case G::Result::UserDoesNotExist:
+            res = "USER_DOES_NOT_EXIST";
+            break;
+        case G::Result::InvalidToken:
+            res = "INVALID_TOKEN";
+            break;
+        case G::Result::InvalidAccountNo:
+            res = "INVALID_ACCOUNT_NO";
+            break;
+        case G::Result::InsufficientBalance:
+            res = "INSUFFICIENT_BALANCE";
+            break;
+        case G::Result::TransferSuccessful:
+            res = "TRANSFER_OK.TOKEN=" + this->Token;
+            break;
+        default:
+            res = "UNKNOWN";
+            break;
+        }
+    } else if(!QString::compare(operation, "deposit")) {
+        QStringList params = data.split(' ');
+        int depositResult = depositMoney(params);
+        switch (depositResult) {
+        case G::Result::WrongParameters:
+            res = "WRONG_PARAMETERS";
+            break;
+        case G::Result::UserDoesNotExist:
+            res = "USER_DOES_NOT_EXIST";
+            break;
+        case G::Result::InvalidToken:
+            res = "INVALID_TOKEN";
+            break;
+        case G::Result::DepositSuccessful:
+            res = "DEPOSIT_SUCCESSFUL.TOKEN=" + this->Token;
+            break;
+        default:
+            res = "UNKNOWN";
+            break;
+        }
     }
     return res.toUtf8();
 }
@@ -171,7 +222,9 @@ int Client::loginUser(QStringList params)
         return G::Result::UserDoesNotExist;
 
     if(!QString::compare(password, user.getPassword())) {
-        this->Token = user.getToken();
+        QString newToken = generateToken();
+        m_Db->updateUserToken(user.getUserName(), newToken);
+        this->Token = newToken;
         return G::Result::LoginSuccessful;
     }
 
@@ -180,7 +233,7 @@ int Client::loginUser(QStringList params)
 
 int Client::transferMoney(QStringList userParams)
 {
-    //QString userName, QString token, QString targetAccountnNo
+    //transfer <username> <token> <target_account_no> <amount>
     if(userParams.length() != 5)
         return G::Result::WrongParameters;
 
@@ -188,10 +241,10 @@ int Client::transferMoney(QStringList userParams)
     QString strAmount = userParams[4].trimmed().replace(QRegularExpression("[^0-9\\s]"), "");
     double amount = strAmount.toDouble();
     User user = m_Db->getUser(userName);
+
     if(!user.isAvailable)
         return G::Result::UserDoesNotExist;
 
-    //user exists, check token..
     if(QString::compare(token, user.getToken()))
         return G::Result::InvalidToken;
 
@@ -206,17 +259,47 @@ int Client::transferMoney(QStringList userParams)
     if(QString::compare(sourceBank.getName(), targetBank.getName()))
         transferFee = sourceBank.getTransferFee();
 
-    amount += transferFee;
-    //to:do
     double userBalance = user.getBalance();
 
     //TO:DO : control balances.
     if(userBalance < amount)
         return G::Result::InsufficientBalance;
 
-    //To:Do : updateUserBalance(User user, double balance);
-    m_Db->updateUserBalance(userName, userBalance - amount);
-    m_Db->updateUserBalance(targetUser.getUserName(), targetUser.getBalance() + amount);
+    double sourceBalance = userBalance - amount - transferFee;
+    double targetBalance = targetUser.getBalance() + amount;
+    m_Db->updateUserBalance(userName, sourceBalance);
+    m_Db->updateUserBalance(targetUser.getUserName(), targetBalance);
+
+    QString newToken = generateToken();
+    m_Db->updateUserToken(userName, newToken);
+    this->Token = newToken;
     return G::Result::TransferSuccessful;
 }
+
+int Client::depositMoney(QStringList params)
+{
+    //deposit <username> <token> <amount>
+    if(params.length() != 4)
+        return G::Result::WrongParameters;
+
+    QString userName = params[1], token=params[2], strAmount = params[3];
+    double dAmount = strAmount.toDouble();
+
+    User user = m_Db->getUser(userName);
+    if(!user.isAvailable)
+        return G::Result::UserDoesNotExist;
+
+    if(QString::compare(token, user.getToken()))
+        return G::Result::InvalidToken;
+
+    double amountUpdated = user.getBalance() + dAmount;
+    m_Db->updateUserBalance(userName, amountUpdated);
+
+    QString newToken = generateToken();
+    m_Db->updateUserToken(userName, newToken);
+    this->Token = newToken;
+    return  G::Result::DepositSuccessful;
+}
+
+
 

@@ -24,6 +24,7 @@ public:
     void run();
     bool wait(int msecs);
 private:
+    QByteArray          disconnectReason;
     QRandomGenerator    *randomGenerator;
     QString             generateAccountNumber();
     QString             generateToken();
@@ -36,6 +37,8 @@ private:
     int                 saveUser(QStringList params);
     int                 loginUser(QStringList params);
     int                 transferMoney(QStringList userParams);
+    int                 depositMoney(QStringList params);
+    void                closeConnection();
 
 };
 
