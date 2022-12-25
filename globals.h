@@ -13,6 +13,12 @@ namespace Result {
     const static int WrongParameters = 3;
     const static int LoginSuccessful = 4;
     const static int RegistrationFailed = 5;
+    const static int WrongPassword = 6;
+    const static int UserDoesNotExist = 7;
+    const static int InvalidToken = 8;
+    const static int InsufficientBalance = 9;
+    const static int InvalidAccountNo = 10;
+    const static int TransferSuccessful = 11;
 }
 
 namespace Db {
