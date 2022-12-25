@@ -21,7 +21,7 @@ public:
     QJsonObject getBankInfo(QString bankName);
 
     int         updateUser(User user);
-    int         updateUserBalance(QString userName, int newBalance);
+    int         updateUserBalance(QString userName, double newBalance);
     int         updateUserBank(QString userName, QString newBankName);
     int         updateUserToken(QString userName, QString newToken);
     int         registerNewUser(User user);
@@ -31,7 +31,7 @@ public:
 signals:
 
 private:
-    QJsonObject     m_Document;
+    QJsonObject     m_currentDocument;
     QJsonObject     m_lastCommit;
     QString         m_filePath;
     QFile           *m_dbFilePtr;

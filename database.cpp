@@ -41,13 +41,13 @@ int Database::initDocument()
 
     if(!document.isObject()) { return 0; }
 
-    this->m_Document = document.object();
+    this->m_currentDocument = document.object();
     return 1;
 }
 
 QJsonValueRef Database::getUsers()
 {
-    return this->m_Document["users"];
+    return this->m_currentDocument["users"];
 }
 
 QList<User> Database::getUserList()
@@ -64,7 +64,7 @@ QList<User> Database::getUserList()
 
 QJsonValueRef Database::getBanks()
 {
-    return this->m_Document["banks"];
+    return this->m_currentDocument["banks"];
 }
 
 QList<Bank> Database::getBankList()
@@ -96,7 +96,6 @@ Bank Database::getBank(QString bankName)
     QJsonObject bankInfo = getBankInfo(bankName);
     Bank bank(bankName, bankInfo);
     return bank;
-    //return bankInfo.isEmpty() ? Bank("unknown", bankInfo) : Bank(bankName, bankInfo);
 }
 
 User Database::getUserByAccountNo(QString accountNo)
@@ -107,7 +106,7 @@ User Database::getUserByAccountNo(QString accountNo)
         if(!QString::compare(accountNo, u.getAccountNo()))
             return u;
     }
-    return user; // returns empty user.
+    return user;
 }
 
 User Database::getUser(QString userName)
@@ -115,7 +114,6 @@ User Database::getUser(QString userName)
     QJsonObject userInfo = getUserInfo(userName);
     User user(userName, userInfo);
     return user;
-    //return userInfo.isEmpty() ? User("unknown", userInfo) : User(userName, userInfo);
 }
 
 int Database::updateUser(User user)
@@ -133,7 +131,7 @@ int Database::updateUser(User user)
     return pushLastCommit();
 }
 
-int Database::updateUserBalance(QString userName, int newBalance)
+int Database::updateUserBalance(QString userName, double newBalance)
 {
     QJsonObject users = getUsers().toObject();
     QJsonObject userUpdated = users.take(userName).toObject();
@@ -141,10 +139,6 @@ int Database::updateUserBalance(QString userName, int newBalance)
     users[userName] = userUpdated;
     (void)commit("users", users);
     return pushLastCommit();
-
-
-    //getUsers().toObject().take(userName).toObject().insert("balance", newBalance);
-    //return 0;
 }
 
 int Database::updateUserBank(QString userName, QString newBankName)
@@ -155,9 +149,6 @@ int Database::updateUserBank(QString userName, QString newBankName)
     users[userName] = userUpdated;
     (void)commit("users", users);
     return pushLastCommit();
-
-    //getUsers().toObject().take(userName).toObject().insert("bank", newBankName);
-    //return 0;
 }
 
 int Database::updateUserToken(QString userName, QString newToken)
@@ -168,9 +159,6 @@ int Database::updateUserToken(QString userName, QString newToken)
     users[userName] = userUpdated;
     (void)commit("users", users);
     return pushLastCommit();
-
-    //getUsers().toObject().take(userName).toObject().insert("token", newToken);
-    //return 0;
 }
 
 int Database::registerNewUser(User user)
@@ -204,12 +192,13 @@ int Database::pushLastCommit()
     m_dbFilePtr->resize(0);
     m_dbFilePtr->write(updatedDoc.toJson());
     m_dbFilePtr->close();
+    this->m_currentDocument = this->m_lastCommit;
     return G::Db::Result::PushSuccessful;
 }
 
 int Database::commit(QString key, QJsonObject chg)
 {
-    this->m_lastCommit = this->m_Document;
+    this->m_lastCommit = this->m_currentDocument;
     this->m_lastCommit[key] = chg;
     return 1;
 }
