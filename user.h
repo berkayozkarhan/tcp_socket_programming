@@ -6,7 +6,7 @@
 class User
 {
 public:
-    User() {}
+    User() { isAvailable = false; }
     explicit User(QString userName, QJsonObject userInfo);
 
     // getters
@@ -15,7 +15,7 @@ public:
     QString     getName()       const { return name; }
     QString     getToken()      const { return token; }
     QString     getSurname()    const { return surname; }
-    int         getBalance()    const { return balance; }
+    double      getBalance()    const { return balance; }
     QString     getPassword()   const { return password; }
     QString     getUserName()   const { return userName; }
     QString     getAccountNo()  const { return accountNo; }
@@ -24,7 +24,7 @@ public:
     //setters
     void setName        (const QString &newName)        { name = newName; }
     void setToken       (const QString &newToken)       { token = newToken; }
-    void setBalance     (int newBalance)                { balance = newBalance; }
+    void setBalance     (double newBalance)             { balance = newBalance; }
     void setSurname     (const QString &newSurname)     { surname = newSurname; }
     void setUserName    (const QString &newUserName)    { userName = newUserName; }
     void setBankName    (const QString &newBankName)    { bankName = newBankName; }
@@ -34,7 +34,7 @@ public:
 private:
     QString name;
     QString token;
-    int     balance;
+    double  balance;
     QString surname;
     QString password;
     QString userName;

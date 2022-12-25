@@ -1,6 +1,7 @@
 #include "user.h"
 #include "bank.h"
 
+
 User::User(QString userName, QJsonObject userInfo)
 {
     isAvailable = false;
@@ -10,8 +11,9 @@ User::User(QString userName, QJsonObject userInfo)
         this->name = userInfo.take("name").toString();
         this->surname = userInfo.take("surname").toString();
         this->bankName = userInfo.take("bank").toString();
-        this->balance = userInfo.take("balance").toInt();
+        this->balance = userInfo.take("balance").toDouble();
         this->token = userInfo.take("token").toString();
+        this->password = userInfo.take("password").toString();
         isAvailable = true;
         return;
     }
@@ -26,6 +28,7 @@ QJsonObject User::getJson()
     json["balance"] = this->balance;
     json["bank"] = this->bankName;
     json["token"] = this->token;
+    json["password"] = this->password;
     return json;
 }
 
