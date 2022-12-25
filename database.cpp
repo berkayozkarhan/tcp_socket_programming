@@ -94,13 +94,28 @@ QJsonObject Database::getBankInfo(QString bankName)
 Bank Database::getBank(QString bankName)
 {
     QJsonObject bankInfo = getBankInfo(bankName);
-    return bankInfo.isEmpty() ? Bank("unknown", bankInfo) : Bank(bankName, bankInfo);
+    Bank bank(bankName, bankInfo);
+    return bank;
+    //return bankInfo.isEmpty() ? Bank("unknown", bankInfo) : Bank(bankName, bankInfo);
+}
+
+User Database::getUserByAccountNo(QString accountNo)
+{
+    QList userList = getUserList();
+    User user;
+    foreach (User u, userList) {
+        if(!QString::compare(accountNo, u.getAccountNo()))
+            return u;
+    }
+    return user; // returns empty user.
 }
 
 User Database::getUser(QString userName)
 {
     QJsonObject userInfo = getUserInfo(userName);
-    return userInfo.isEmpty() ? User("unknown", userInfo) : User(userName, userInfo);
+    User user(userName, userInfo);
+    return user;
+    //return userInfo.isEmpty() ? User("unknown", userInfo) : User(userName, userInfo);
 }
 
 int Database::updateUser(User user)

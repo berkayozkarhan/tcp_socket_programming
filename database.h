@@ -14,6 +14,7 @@ public:
     explicit Database(QString filePath, QObject *parent = nullptr);
     User        getUser(QString userName);
     Bank        getBank(QString bankName);
+    User        getUserByAccountNo(QString accountNo);
     QList<User> getUserList();
     QList<Bank> getBankList();
     QJsonObject getUserInfo(QString userName);
