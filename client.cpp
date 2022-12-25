@@ -9,6 +9,14 @@ const static char *Banner = "Welcome. Please specify operation described below. 
                             "For transfer, first login and get token. After you got token, use this token to transfer money.\n"
                             "quit   : Quit, usage : quit\n";
 
+
+QByteArray Banner1 = "Welcome. Please specify operation described below. \n"
+                      "signin   : Sign in, usage : signin <username> <password>\n"
+                      "login    : Login, usage : login <username> <password>\n"
+                      "transfer : Transfer money, usage : transfer <(str)username> <(str)token> <(str)target_account_no> <(double)amount>\n"
+                      "For transfer, first login and get token. After you got token, use this token to transfer money.\n"
+                      "quit   : Quit, usage : quit\n";
+
 Client::Client(qintptr handle, Database *db, QObject *parent)
     : QObject{parent}, QRunnable{}
 {
@@ -32,7 +40,7 @@ void Client::run()
         return;
     }
 
-    QByteArray res = Banner;
+    QByteArray res = Banner1;
     while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(G::App::TimeoutMs)) { // 60 seconds
         QString rcvString = "";
         while(!rcvString.endsWith("\r\n")) {
@@ -195,6 +203,29 @@ QByteArray Client::handleData(QString data)
             res = "UNKNOWN";
             break;
         }
+    } else if(!QString::compare(operation, "wdraw")) {
+        QStringList params = data.split(' ');
+        int wdrawResult = withDrawMoney(params);
+        switch (wdrawResult) {
+        case G::Result::WrongParameters:
+            res = "WRONG_PARAMETERS";
+            break;
+        case G::Result::UserDoesNotExist:
+            res = "USER_DOES_NOT_EXIST";
+            break;
+        case G::Result::InvalidToken:
+            res = "INVALID_TOKEN";
+            break;
+        case G::Result::InsufficientBalance:
+            res = "INSUFFICIENT_BALANCE";
+            break;
+        case G::Result::WithDrawSuccessful:
+            res = "WIDTH_DRAW_SUCCESSFUL.TOKEN=" + this->Token;
+            break;
+        default:
+            res = "UNKNOWN";
+            break;
+        }
     }
     else
         res = "UNKNOWN";
@@ -321,6 +352,33 @@ int Client::depositMoney(QStringList params)
     m_Db->updateUserToken(userName, newToken);
     this->Token = newToken;
     return  G::Result::DepositSuccessful;
+}
+
+int Client::withDrawMoney(QStringList params)
+{
+    //wdraw <username> <token> <amount>
+    if(params.length() != 4)
+        return G::Result::WrongParameters;
+
+    QString userName = params[1], token = params[2], strAmount = params[3].trimmed().replace(QRegularExpression("[^0-9\\s]"), "");
+    double dAmount = strAmount.toDouble();
+    User user = m_Db->getUser(userName);
+    if(!user.isAvailable)
+        return G::Result::UserDoesNotExist;
+
+    if(QString::compare(token, user.getToken()))
+        return G::Result::InvalidToken;
+
+    double userBalance = user.getBalance();
+    if(userBalance < dAmount)
+        return G::Result::InsufficientBalance;
+
+    double userBalanceUpdated = userBalance - dAmount;
+    m_Db->updateUserBalance(userName, userBalanceUpdated);
+    QString newToken = generateToken();
+    this->Token = newToken;
+    m_Db->updateUserToken(userName, newToken);
+    return G::Result::WithDrawSuccessful;
 }
 
 int Client::showUserInfo(QStringList params)

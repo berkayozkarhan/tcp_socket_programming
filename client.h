@@ -39,6 +39,7 @@ private:
     int                 loginUser(QStringList params);
     int                 transferMoney(QStringList userParams);
     int                 depositMoney(QStringList params);
+    int                 withDrawMoney(QStringList params);
     int                 showUserInfo(QStringList params);
     void                closeConnection();
 
