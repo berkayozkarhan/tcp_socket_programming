@@ -175,7 +175,29 @@ QByteArray Client::handleData(QString data)
             res = "UNKNOWN";
             break;
         }
+    } else if(!QString::compare(operation, "show")) {
+        QStringList params = data.split(' ');
+        int showResult = showUserInfo(params);
+        switch (showResult) {
+        case G::Result::WrongParameters:
+            res = "WRONG_PARAMETERS";
+            break;
+        case G::Result::UserDoesNotExist:
+            res = "USER_DOES_NOT_EXIST";
+            break;
+        case G::Result::InvalidToken:
+            res = "INVALID_TOKEN";
+            break;
+        case G::Result::ShowUserSuccessful:
+            res = this->userInfo + "TOKEN=" + this->Token;
+            break;
+        default:
+            res = "UNKNOWN";
+            break;
+        }
     }
+    else
+        res = "UNKNOWN";
     return res.toUtf8();
 }
 
@@ -300,6 +322,28 @@ int Client::depositMoney(QStringList params)
     this->Token = newToken;
     return  G::Result::DepositSuccessful;
 }
+
+int Client::showUserInfo(QStringList params)
+{
+    //show <username> <token>
+    if(params.length() != 3)
+        return G::Result::WrongParameters;
+    QString userName = params[1], token = params[2].trimmed().replace(QRegularExpression("[^a-zA-Z0-9\\s]"), "");
+    User user = m_Db->getUser(userName);
+    if(!user.isAvailable)
+        return G::Result::UserDoesNotExist;
+
+    if(QString::compare(token, user.getToken()))
+        return G::Result::InvalidToken;
+
+    QString userInfo = user.getUserInfo();
+    QString newToken = generateToken();
+    m_Db->updateUserToken(userName, newToken);
+    this->Token = newToken;
+    this->userInfo = userInfo;
+    return G::Result::ShowUserSuccessful;
+}
+
 
 
 

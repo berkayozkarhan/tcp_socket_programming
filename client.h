@@ -31,6 +31,7 @@ private:
     Database            *m_Db;
     bool                Connected;
     QString             Token;
+    QString             userInfo;
     qintptr             handle;
     QTcpSocket          *socket;
     QByteArray          handleData(QString data);
@@ -38,6 +39,7 @@ private:
     int                 loginUser(QStringList params);
     int                 transferMoney(QStringList userParams);
     int                 depositMoney(QStringList params);
+    int                 showUserInfo(QStringList params);
     void                closeConnection();
 
 };
