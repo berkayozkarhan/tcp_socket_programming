@@ -3,10 +3,11 @@
 #include <time.h>
 
 const static char *Banner = "Welcome. Please specify operation described below. \n"
-                            "signin : Sign in, usage : signin <username> <password>\n"
-                            "login  : Login, usage : login <username> <password>\n"
+                            "signin   : Sign in, usage : signin <username> <password>\n"
+                            "login    : Login, usage : login <username> <password>\n"
+                            "transfer : Transfer money, usage : transfer <(str)username> <(str)token> <(str)target_account_no> <(double)amount>\n"
+                            "For transfer, first login and get token. After you got token, use this token to transfer money.\n"
                             "quit   : Quit, usage : quit\n";
-
 
 Client::Client(qintptr handle, Database *db, QObject *parent)
     : QObject{parent}, QRunnable{}
@@ -31,7 +32,7 @@ void Client::run()
     }
 
     QByteArray res = Banner;
-    while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(10000)) {
+    while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(10000 * 6)) { // 60 seconds
         QString rcvString = "";
         while(!rcvString.endsWith("\r\n")) {
             rcvString += QString(socket->read(1));
@@ -111,10 +112,18 @@ QByteArray Client::handleData(QString data)
         case G::Result::WrongParameters:
             res = "WRONG_PARAMETERS";
             break;
+        case G::Result::UserDoesNotExist:
+            res = "USER_DOES_NOT_EXIST";
+            break;
         default:
             res = "UNKNOWN";
             break;
         }
+    }
+    else if(!QString::compare(operation, "transfer")) {
+        QStringList params = data.split(' ');
+        //transfer  berkay  new_token_123123 123456 10
+        int transferResult = transferMoney(params);
     }
     return res.toUtf8();
 }
@@ -155,10 +164,59 @@ int Client::loginUser(QStringList params)
     }
 
     QString userName = params[1];
-    QString password = params[2];
+    QString password = params[2].trimmed().replace(QRegularExpression("[^a-zA-Z0-9\\s]"), "");;
 
-    Token = "tokenTest123";
+    User user = m_Db->getUser(userName);
+    if(!user.isAvailable)
+        return G::Result::UserDoesNotExist;
 
-    return G::Result::LoginSuccessful;
+    if(!QString::compare(password, user.getPassword())) {
+        this->Token = user.getToken();
+        return G::Result::LoginSuccessful;
+    }
+
+    return G::Result::WrongPassword;
+}
+
+int Client::transferMoney(QStringList userParams)
+{
+    //QString userName, QString token, QString targetAccountnNo
+    if(userParams.length() != 5)
+        return G::Result::WrongParameters;
+
+    QString userName =userParams[1], token = userParams[2], targetAccountNo = userParams[3];
+    QString strAmount = userParams[4].trimmed().replace(QRegularExpression("[^0-9\\s]"), "");
+    double amount = strAmount.toDouble();
+    User user = m_Db->getUser(userName);
+    if(!user.isAvailable)
+        return G::Result::UserDoesNotExist;
+
+    //user exists, check token..
+    if(QString::compare(token, user.getToken()))
+        return G::Result::InvalidToken;
+
+    //check account no is valid
+    User targetUser = m_Db->getUserByAccountNo(targetAccountNo);
+    if(!targetUser.isAvailable)
+        return G::Result::InvalidAccountNo;
+
+    // all params are valid
+    Bank sourceBank = m_Db->getBank(user.getBankName()), targetBank = m_Db->getBank(targetUser.getBankName());
+    double transferFee = 0.;
+    if(QString::compare(sourceBank.getName(), targetBank.getName()))
+        transferFee = sourceBank.getTransferFee();
+
+    amount += transferFee;
+    //to:do
+    double userBalance = user.getBalance();
+
+    //TO:DO : control balances.
+    if(userBalance < amount)
+        return G::Result::InsufficientBalance;
+
+    //To:Do : updateUserBalance(User user, double balance);
+    m_Db->updateUserBalance(userName, userBalance - amount);
+    m_Db->updateUserBalance(targetUser.getUserName(), targetUser.getBalance() + amount);
+    return G::Result::TransferSuccessful;
 }
 

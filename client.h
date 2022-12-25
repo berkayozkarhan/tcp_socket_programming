@@ -35,6 +35,7 @@ private:
     QByteArray          handleData(QString data);
     int                 saveUser(QStringList params);
     int                 loginUser(QStringList params);
+    int                 transferMoney(QStringList userParams);
 
 };
 
