@@ -20,6 +20,7 @@ namespace Result {
     const static int InvalidAccountNo = 10;
     const static int TransferSuccessful = 11;
     const static int DepositSuccessful = 12;
+    const static int ShowUserSuccessful = 13;
 }
 
 namespace Db {
