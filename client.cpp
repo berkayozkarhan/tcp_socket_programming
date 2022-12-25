@@ -2,20 +2,18 @@
 #include "globals.h"
 #include <time.h>
 
-const static char *Banner = "Welcome. Please specify operation described below. \n"
-                            "signin   : Sign in, usage : signin <username> <password>\n"
-                            "login    : Login, usage : login <username> <password>\n"
-                            "transfer : Transfer money, usage : transfer <(str)username> <(str)token> <(str)target_account_no> <(double)amount>\n"
-                            "For transfer, first login and get token. After you got token, use this token to transfer money.\n"
-                            "quit   : Quit, usage : quit\n";
+QByteArray Banner =    "\n****************************************** BANKING *****************************************************************"
+                        "\n Welcome. Please specify operation described below."
+                        "\n signin   : Sign in, usage : signin <username> <password>"
+                        "\n login    : Login, usage : login <username> <password>"
+                        "\n deposit  : Deposit money, usage : deposit <username> <token> <amount>"
+                        "\n wdraw    : Withdraw money, usage : wdraw <username> <token> <amount>"
+                        "\n show     : Show user info, usage : show <username> <token>"
+                        "\n transfer : Transfer money, usage : transfer <(str)username> <(str)token> <(str)target_account_no> <(double)amount>"
+                        "\n quit     : Quit, usage : quit"
+                        "\n *** For transfer, first login and get token. After you got token, use this token to transfer money."
+                        "\n****************************************** BANKING *****************************************************************";
 
-
-QByteArray Banner1 = "Welcome. Please specify operation described below. \n"
-                      "signin   : Sign in, usage : signin <username> <password>\n"
-                      "login    : Login, usage : login <username> <password>\n"
-                      "transfer : Transfer money, usage : transfer <(str)username> <(str)token> <(str)target_account_no> <(double)amount>\n"
-                      "For transfer, first login and get token. After you got token, use this token to transfer money.\n"
-                      "quit   : Quit, usage : quit\n";
 
 Client::Client(qintptr handle, Database *db, QObject *parent)
     : QObject{parent}, QRunnable{}
@@ -40,7 +38,7 @@ void Client::run()
         return;
     }
 
-    QByteArray res = Banner1;
+    QByteArray res = Banner;
     while(socket->write(res), socket->waitForBytesWritten(), socket->waitForReadyRead(G::App::TimeoutMs)) { // 60 seconds
         QString rcvString = "";
         while(!rcvString.endsWith("\r\n")) {
@@ -48,10 +46,8 @@ void Client::run()
         }
         qDebug() << "client : " << rcvString;
         res = handleData(rcvString);
-        if (!QString::compare("UNKNOWN", res)) {
-            this->disconnectReason = "UNKNOWN_COMMAND";
+        if (!QString::compare("UNKNOWN", res))
             break;
-        }
     }
     closeConnection();
     exit(0);
@@ -99,7 +95,7 @@ QString Client::generateToken()
 QByteArray Client::handleData(QString data)
 {
     QString res = "UNKNOWN";
-    QString operation = data.split(' ').at(0);
+    QString operation = data.split(' ').at(0).trimmed().replace(QRegularExpression("[^a-zA-Z0-9\\s]"), "");;
 
     if(!QString::compare(operation, "signin")) {
         QStringList params = data.split(' ');
@@ -130,6 +126,9 @@ QByteArray Client::handleData(QString data)
             break;
         case G::Result::UserDoesNotExist:
             res = "USER_DOES_NOT_EXIST";
+            break;
+        case G::Result::WrongPassword:
+            res = "WRONG_PASSWORD";
             break;
         default:
             res = "UNKNOWN";
@@ -227,8 +226,14 @@ QByteArray Client::handleData(QString data)
             break;
         }
     }
-    else
+    else if(!QString::compare(operation, "quit")){
+        this->disconnectReason = "QUIT";
         res = "UNKNOWN";
+    }
+    else {
+        this->disconnectReason = "UNKNOWN_COMMAND";
+        res = "UNKNOWN";
+    }
     return res.toUtf8();
 }
 
@@ -262,10 +267,8 @@ int Client::saveUser(QStringList params)
 int Client::loginUser(QStringList params)
 {
     //login <username> <password>
-    if(params.length() != 3) {
-        qDebug() << "wrong parameters.";
+    if(params.length() != 3)
         return G::Result::WrongParameters;
-    }
 
     QString userName = params[1];
     QString password = params[2].trimmed().replace(QRegularExpression("[^a-zA-Z0-9\\s]"), "");;
@@ -274,14 +277,13 @@ int Client::loginUser(QStringList params)
     if(!user.isAvailable)
         return G::Result::UserDoesNotExist;
 
-    if(!QString::compare(password, user.getPassword())) {
-        QString newToken = generateToken();
-        m_Db->updateUserToken(user.getUserName(), newToken);
-        this->Token = newToken;
-        return G::Result::LoginSuccessful;
-    }
+    if(QString::compare(password, user.getPassword()))
+        return G::Result::WrongPassword;
 
-    return G::Result::WrongPassword;
+    QString newToken = generateToken();
+    m_Db->updateUserToken(user.getUserName(), newToken);
+    this->Token = newToken;
+    return G::Result::LoginSuccessful;
 }
 
 int Client::transferMoney(QStringList userParams)
