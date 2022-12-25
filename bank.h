@@ -9,11 +9,11 @@ class Bank
 public:
     explicit Bank(QString bankName, QJsonObject bankInfo);
     bool    isAvailable;
-    int     getTransferFee()    const { return transferFee; }
+    double  getTransferFee()    const { return transferFee; }
     QString getName()           const { return name; }
 private:
     QString name;
-    int transferFee;
+    double transferFee;
 
 };
 
