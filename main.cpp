@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    //Database *db = new Database(G::Db::filePath);
-
+    Database *db = new Database(G::Db::filePath);
+    db->open();
     /*
     QList<User> userList = db->getUserList();
     QList<Bank> bankList = db->getBankList();
@@ -49,6 +49,11 @@ int main(int argc, char *argv[])
     //db->updateUserToken("berkay", "new_token_123123");
     */
 
+    /*
+    User user = db->getUserByAccountNo("asdasd");
+    if(user.isAvailable)
+        qDebug() << "name : " << user.getUserName();
+    */
 
     Server server;
     server.start(G::Server::port);
