@@ -1,0 +1,72 @@
+{
+    "banks": {
+        "Bank1": {
+            "transferfee": 1
+        },
+        "Bank2": {
+            "transferfee": 2
+        },
+        "Bank3": {
+            "transferfee": 3
+        }
+    },
+    "counters": {
+        "account_counter": 1006
+    },
+    "users": {
+        "berkk": {
+            "account_no": "1003",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "12345",
+            "surname": "",
+            "token": "srDbhAgHaw9d"
+        },
+        "jale": {
+            "account_no": "1005",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "12345",
+            "surname": "",
+            "token": "8ByM6jfzSHZe"
+        },
+        "kemal": {
+            "account_no": "1004",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "12345",
+            "surname": "",
+            "token": "DhFRVpmD5zmD"
+        },
+        "testtest": {
+            "account_no": "1002",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "123123123",
+            "surname": "",
+            "token": "3LitvK49iL4c"
+        },
+        "testuser": {
+            "account_no": "1000",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "123123123",
+            "surname": "",
+            "token": "Wjbyj9J4xFqT"
+        },
+        "testuser1": {
+            "account_no": "1001",
+            "balance": 0,
+            "bank": "Bank1",
+            "name": "",
+            "password": "123123123",
+            "surname": "",
+            "token": "Wjbyf9J4xFqT"
+        }
+    }
+}
