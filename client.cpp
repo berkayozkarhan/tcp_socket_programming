@@ -251,7 +251,6 @@ int Client::saveUser(QStringList params)
     newUser.setUserName(userName);
     newUser.setPassword(password);
     newUser.setToken(generateToken());
-    newUser.setAccountNo(generateAccountNumber());
     newUser.setBankName("Bank1");
     newUser.setBalance(0);
 
