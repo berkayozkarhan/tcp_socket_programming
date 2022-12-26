@@ -8,6 +8,7 @@ Database::Database(QString filePath, QObject *parent)
     : QObject{parent}
 {
     isOpen = false;
+    this->nextAccountNo = 0;
     this->m_filePath = filePath;
     qDebug() << "file path : " << this->m_filePath;
 }
@@ -20,6 +21,8 @@ int Database::open()
     if(!initDocument()) { qDebug() << "db document initialize error."; return G::Db::Result::ErrDbDocumentInitialize; }
     qDebug() << "Successfully initialized db document.";
     isOpen = true;
+    QJsonObject counters = this->m_currentDocument.take("counters").toObject();
+    this->nextAccountNo = counters.take("account_counter").toDouble();
     return G::Db::Result::DbOpenSuccessful;
 }
 
@@ -170,7 +173,7 @@ int Database::registerNewUser(User user)
     }
 
     QJsonObject userUpdate; // = users.take(user.getUserName()).toObject();
-    userUpdate.insert("account_no", user.getAccountNo());
+    userUpdate.insert("account_no", QString::number(this->nextAccountNo++));
     userUpdate.insert("name", user.getName());
     userUpdate.insert("surname", user.getSurname());
     userUpdate.insert("balance", user.getBalance());
@@ -179,8 +182,12 @@ int Database::registerNewUser(User user)
     userUpdate.insert("password", user.getPassword());
     users[user.getUserName()] = userUpdate;
     (void)commit("users", users);
-
-    return pushLastCommit();
+    (void)pushLastCommit();
+    QJsonObject countersUpdate;
+    countersUpdate.insert("account_counter", this->nextAccountNo);
+    (void)commit("counters", countersUpdate);
+    (void)pushLastCommit();
+    return G::Db::Result::PushSuccessful;
 }
 
 int Database::pushLastCommit()

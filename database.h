@@ -34,6 +34,7 @@ private:
     QJsonObject     m_currentDocument;
     QJsonObject     m_lastCommit;
     QString         m_filePath;
+    int             nextAccountNo;
     QFile           *m_dbFilePtr;
     QJsonValueRef   getBanks();
     QJsonValueRef   getUsers();
